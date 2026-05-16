@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>电竞酒店好评生成器</title>
+<style>
+  :root {
+    --bg: #0a0e17;
+    --card: #131a2b;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #7c4dff;
+    --text: #b0c0d0;
+    --text-bright: #e0e8f0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(0,229,255,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 60%, rgba(124,77,255,0.04) 0%, transparent 50%);
+  }
+
+  .header {
+    text-align: center;
+    padding: 24px 0 20px;
+  }
+
+  .header .icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 2px;
+  }
+
+  .header .sub {
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  .photos {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 0 0 16px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .photos::-webkit-scrollbar { height: 0; }
+
+  .photos img {
+    height: 180px;
+    border-radius: 10px;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+
+  .reviews {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .review-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+
+  .review-card:hover { border-color: var(--accent); }
+
+  .review-stars {
+    color: #ffb300;
+    font-size: 14px;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+
+  .review-text {
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-bright);
+    margin-bottom: 12px;
+  }
+
+  .review-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+
+  .btn-copy {
+    background: linear-gradient(135deg, var(--accent2), #651fff);
+    color: #fff;
+  }
+
+  .btn-copy:active { transform: scale(0.97); opacity: 0.9; }
+
+  .btn-copy.copied {
+    background: #00c853;
+  }
+
+  .btn-refresh {
+    background: var(--card);
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .btn-refresh:active { background: #1a2540; }
+
+  .btn-copy-all {
+    background: linear-gradient(135deg, #00e5ff, #00b8d4);
+    color: #000;
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+
+  .btn-copy-all:active { transform: scale(0.98); }
+
+  .btn-copy-all.copied {
+    background: #00c853;
+    color: #fff;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-group .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+    background: rgba(0,229,255,0.1);
+    color: var(--accent);
+  }
+
+  .qr-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+  .qr-modal.show { display: flex; }
+  .qr-box {
+    background: #fff;
+    padding: 24px;
+    border-radius: 16px;
+    text-align: center;
+  }
+  .qr-box canvas { display: block; margin: 0 auto; }
+  .qr-box .qr-title {
+    color: #1a1a2e;
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 12px;
+  }
+  .qr-box .qr-tip {
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+  }
+  .btn-close-qr {
+    margin-top: 16px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 10px 32px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-qr {
+    background: linear-gradient(135deg, #ffb300, #ff8f00);
+    color: #000;
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    font-size: 15px;
+    border-radius: 10px;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-family: inherit;
+  }
+  .btn-qr:active { transform: scale(0.98); }
+
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #00c853;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .toast.show { opacity: 1; }
+
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: #4a5568;
+    padding: 16px 0 24px;
+  }
+
+  .count-badge {
+    text-align: center;
+    font-size: 12px;
+    color: #5a6a80;
+    margin-bottom: 12px;
+  }
+
+  @media (min-width: 600px) {
+    body { max-width: 500px; margin: 0 auto; }
+    .photos img { height: 220px; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<div class="qr-modal" id="qrModal" onclick="if(event.target===this)closeQr()">
+  <div class="qr-box">
+    <div id="qrCode"></div>
+    <div class="qr-title">扫码打开好评生成器</div>
+    <div class="qr-tip">客人扫码后即可复制好评</div>
+  </div>
+  <button class="btn-close-qr" onclick="closeQr()">关闭</button>
+</div>
+
+<div class="header">
+  <div class="icon">🎮</div>
+  <h1>电竞酒店好评生成器</h1>
+  <div class="sub">随机评论 · 一键复制 · 客人无忧</div>
+</div>
+
+<div class="photos" id="photos"></div>
+<div class="count-badge" id="photoCount"></div>
+
+<div class="reviews" id="reviews"></div>
+
+<button class="btn btn-copy-all" id="btnCopyAll" onclick="copyAll()">
+  📋 一键复制全部评论
+</button>
+
+<button class="btn-qr" onclick="showQr()">
+  📱 出示二维码给客人扫
+</button>
+
+<div class="btn-group">
+  <button class="btn btn-refresh" onclick="refresh()">🎲 换一批评论</button>
+  <button class="btn btn-refresh" onclick="refreshPhotos()">📷 换一批照片</button>
+  <button class="btn btn-refresh" onclick="refreshAll()">🔄 全部刷新</button>
+</div>
+
+<div class="footer">
+  打开页面自动随机生成 · 截图或复制发给客人
+</div>
+
+<script>
+const REVIEWS = [
+  "电脑配置超高，玩大作毫无压力。键盘鼠标等外设很高端，手感极佳。房间也非常干净整洁，住得很舒服。",
+  "前台小姐姐很热情，入住体验满分！房间不仅干净，还有小度管家，开关灯一句话搞定，太方便了。",
+  "楼下吃喝一应俱全，交通特别便利。房间自带小冰箱，冰镇饮料随时喝。加上电脑配置好，周末上分首选！",
+  "小度管家很贴心，喊一声就能拉窗帘。外设都是大牌子，打游戏很爽。前台服务也很温馨，值得二刷。",
+  "房间打扫得一尘不染。玩累了直接从小冰箱拿冰饮料喝，超解压。楼下吃饭也方便，这电竞体验极佳。",
+  "前台小哥服务特别温馨。电脑配置很高，全程满帧运行。鼠标键盘等外设手感绝佳，连坐开黑必来！",
+  "位置绝佳，楼下吃饭交通都十分方便。房间里有小度智能控制，还有装满饮料的小冰箱，懒人福音啊。",
+  "外设很高端，耳机听声辨位极准。房间整洁无异味，前台办理入住非常热情，以后打游戏就选这了。",
+  "电脑配置没得说，绝对的电竞级。房间配有小冰箱，冷饮配游戏简直王炸。楼下吃饭的地方也超多！",
+  "全屋小度管家控制，科技感拉满！房间干净卫生，前台服务态度也是一流的温馨，挑不出一点毛病。",
+  "外设相当专业，机械键盘敲击感很棒。电脑配置强悍不卡顿，加上房间打扫得非常干净，五星好评！",
+  "交通便利，出门就是地铁，楼下吃饭方便。房间里有小度管家和小冰箱，喝着冷饮语音切歌太惬意了。",
+  "前台服务热情周到，让人有宾至如归的感觉。电脑配置好，外设也是高端货，游戏体验直接拉满。",
+  "房间自带的小冰箱里有各种饮料，打机不愁口渴。小度管家很聪明，最棒的是楼下吃饭特别方便。",
+  "干净整洁是我对这家店的第一印象。电脑配置好，打游戏超顺滑，前台的热情服务也让人心情愉悦。",
+  "外设手感超赞，一看就是高端配置。小度管家随叫随到，房间里的小冰箱装满饮料，细节做得太到位了。",
+  "楼下就是商圈，吃饭交通都十分方便。房间布置得干净整洁，电脑配置也很顶，周末度假好去处。",
+  "刚进门前台就很温馨地打招呼。房间的小度管家很省事，外设也是专业电竞级别的，手感没得挑。",
+  "电脑流畅度满分，外设高端好用。玩渴了直接开小冰箱拿饮料，饿了下楼吃饭也方便，完美！",
+  "房间卫生做得特别好，干净整洁。小度智能管家很听话，前台小姐姐笑容很甜、服务热情，强烈推荐。",
+  "楼下干饭十分方便，交通也便利。电竞外设高端专业，小度管家更是懒人必备，这配置绝了。",
+  "电脑配置好，各种主流游戏都有。小冰箱里备了饮料很贴心，房间也打扫得很干净，住得很舒心。",
+  "体验极佳！前台服务热情，电脑配置顶级，外设鼠标键盘手感极好，加上楼下吃饭方便，下次还来。",
+  "小度管家放着战歌，从小冰箱拿瓶饮料，打游戏太有感觉了。而且房间卫生死角都打扫得很干净。",
+  "外设高端，电脑配置很好，打永劫无间一点不卡。楼下商铺多，吃饭十分方便，绝对是开黑圣地。",
+  "前台小哥服务温馨。小度管家控制空调很方便，房间的小冰箱里冷饮充足，硬件软件都让人满意。",
+  "房间特别干净整洁，没有烟味。楼下交通便利吃饭方便，电脑配置也是杠杠的，游戏体验满分。",
+  "电竞设备很专业，外设高端。小冰箱里有饮料，随时解渴。前台接待热情，让人感觉很受重视。",
+  "小度智能管家真的很加分！电脑配置好，画面流畅，楼下买宵夜吃饭也十分方便，五星好评安排。",
+  "房间卫生无可挑剔，干净整洁。外设高端趁手，小冰箱里的冰饮料更是夏天打游戏的续命神器。",
+  "楼下的美食街吃饭十分方便。前台服务温馨，房间里的小度管家也很灵敏，这是一次很棒的入住。",
+  "电脑配置好，画质全开无压力。外设高端，耳机隔音好。房间还有小冰箱和饮料，简直是玩家天堂。",
+  "一进门就觉得房间干净整洁。小度管家控制全屋很方便，楼下交通便利，吃饭的选择也很多。",
+  "前台热情周到的服务必须点赞。小冰箱里的饮料很解渴，外设更是高端好用，上分如喝水般简单。",
+  "电脑配置强悍，打游戏就是爽！房间干净整洁，小度管家语音点歌很酷，很适合周末和朋友聚会。",
+  "楼下吃饭太方便了，吃饱喝足上楼开黑。外设高端手感好，房间配的小冰箱和饮料更是点睛之笔。",
+  "前台小姐姐服务温馨。房间全智能，小度管家超好用。电脑配置很好，这性价比真的没谁了。",
+  "卫生打扫得一尘不染，干净整洁。小冰箱有冰饮提供，楼下交通吃饭也十分方便，挑不出毛病。",
+  "外设全是高端大牌，手感极佳。电脑配置好不卡顿，前台服务态度热情，真的是宝藏电竞酒店。",
+  "小度管家控制灯光氛围绝佳。房间配备小冰箱随时喝饮料，楼下餐饮店多吃饭方便，简直完美。",
+  "电脑配置高，畅玩3A大作。前台服务十分温馨，房间也打扫得干净整洁，下次带朋友一起来。",
+  "楼下交通便利，下楼就能吃到好吃的。外设高端专业，小冰箱里的饮料种类多，服务太到位了。",
+  "前台服务热情，小度管家很聪明，电脑配置也很好，连坐打游戏非常流畅，强烈安利给兄弟们。",
+  "房间干净整洁住着舒服。玩游戏渴了有小冰箱的饮料，外设也是高端货，体验远超预期。",
+  "楼下吃饭十分方便，商圈近。小度管家语音拉窗帘很酷，电脑配置也很好，是周末开黑的首选。",
+  "外设手感超好，高端配置没跑了。小冰箱冷藏饮料很实用，前台接待也很温馨，五星推荐！",
+  "电脑配置强劲，前台服务热情。加上房间打扫得干净整洁，楼下吃饭交通也方便，没得挑剔。",
+  "小度管家解放双手，小冰箱冰镇饮料解暑。外设高端好用，这家店把玩家的需求拿捏得死死的。",
+  "环境非常干净整洁，楼下吃饭也十分方便。电脑配置好，游戏加载速度极快，体验感极度舒适。",
+  "前台小哥热情好客。外设键盘鼠标很高端，房间的小度管家也能轻松控制家电，满意！",
+  "配备了小冰箱和饮料，半夜渴了不用下楼。电脑配置很好，楼下交通和吃饭也十分方便，好评。",
+  "小度管家响应迅速。房间卫生干净整洁，外设也十分高端，打游戏沉浸感十足，值得一试。",
+  "楼下吃喝一条龙，吃饭十分方便。前台服务温馨，电脑配置很好，和朋友双排玩得很开心。",
+  "房间有小冰箱很方便，饮料管够。外设高端专业，前台服务也是超级热情，真的绝了。",
+  "电脑配置没得说，房间打扫得很干净整洁。小度智能管家让一切变得很简单，入住体验极佳。",
+  "出门交通便利，楼下吃饭方便。外设手感高级，房间的小冰箱装满饮料，真的是度周末的好地方。",
+  "前台小姐姐服务温馨细致。电脑配置超顶，小度管家也很听话，语音控制全屋的感觉太爽了。",
+  "干净整洁的环境让人舒心。小冰箱里的冰饮料配上高端的外设，在这打游戏真的是一种享受。",
+  "电脑配置好，游戏不掉帧。楼下吃饭十分方便，前台的服务也非常热情，总体性价比极高。",
+  "小度管家太好用了！外设手感高端，加上小冰箱里满满的饮料，这配置让我舍不得退房了。",
+  "房间一尘不染，干净整洁。电脑配置顶配，楼下吃饭交通也很方便，是一家会反复打卡的店。",
+  "前台接待热情，让人如沐春风。房间的小冰箱很实用，外设也很高端，游戏体验直接拉满。",
+  "楼下餐饮丰富，吃饭十分方便。小度管家让房间充满科技感，电脑配置也好，强推！",
+  "外设手感无敌，全是高端货。房间干净卫生，前台服务温馨，加上小冰箱的冷饮，完美。",
+  "电脑配置很好，打什么游戏都流畅。小度管家很方便，楼下交通餐饮一应俱全，太便利了。",
+  "房间打扫得很干净整洁。小冰箱有饮料随时喝，外设也高端，加上前台的温馨服务，满分体验。",
+  "楼下吃饭十分方便，选择多。电脑配置好，小度智能管家贴心，真的是一家很懂玩家的酒店。",
+  "前台小哥服务热情周到。外设高端趁手，小冰箱的冰镇饮料更是给力，这钱花得太值了。",
+  "小度管家喊一声就能切歌。房间干净整洁，电脑配置强悍，完全挑不出任何毛病，兄弟们冲。",
+  "外设高端，打起游戏来就是不一样。楼下吃饭十分方便，前台服务也温馨，给店家点个大大的赞。",
+  "电脑配置好，网速快。小冰箱里备好饮料，房间打扫得也很干净整洁，下次肯定还选这家。",
+  "楼下交通方便，吃饭不用愁。小度智能管家很省心，外设更是高端大牌，值得推荐给大家。",
+  "前台服务热情，办理入住极快。小冰箱有饮料提供，电脑配置也是一等一的好，游戏党必冲。",
+  "房间干净整洁无异味。外设高端手感棒，小度管家更是让这趟电竞之旅充满了科技感。",
+  "电脑配置很好，完全不卡。楼下吃饭十分方便，前台服务也特别温馨，以后认准这家店了。",
+  "小冰箱的冷饮和高端的外设绝配！加上小度管家智能控制，这次的电竞酒店体验真是太棒了。",
+  "楼下商铺林立，吃饭交通十分方便。房间非常干净整洁，电脑配置也高，让人十分满意。",
+  "前台服务热情，让人心情大好。外设是高端配置，小度管家也很灵敏，这是一家宝藏店铺。",
+  "电脑配置很好，运行如飞。小冰箱里饮料齐全，楼下吃饭也方便，绝对是和朋友开黑的圣地。",
+  "房间干净整洁，通风很好。小度管家方便实用，外设手感高端，加上前台温馨服务，无可挑剔。",
+  "楼下吃饭十分方便。外设高端专业，小冰箱的冷饮解渴，电竞氛围感直接拉满，必须好评。",
+  "电脑配置好，显示器清晰。前台小姐姐服务热情，房间还有小度管家，智能化体验极佳。",
+  "干净整洁的房间让人放松。小冰箱里有饮料，楼下吃饭也方便，电脑配置更是顶尖水平。",
+  "外设手感极佳，一看就是高端货。小度管家随叫随到，前台服务温馨，住在这里真的太享受了。",
+  "电脑配置很好，游戏丝滑。楼下吃饭方便，房间里的小冰箱也准备了饮料，老板考虑得很周到。",
+  "前台小哥热情接待。房间卫生干净整洁，外设高端，打游戏的手感好到飞起，下次还来。",
+  "小度管家和小冰箱的组合太赞了！外设高端专业，加上楼下吃饭十分方便，真是无可挑剔。",
+  "电脑配置超好。前台服务十分温馨，房间打扫得干净整洁，这性价比在附近可以说是无敌了。",
+  "楼下交通便利吃饭方便。小冰箱冷饮解乏，小度管家省事，电脑配置又好，强烈安利。",
+  "外设高端，耳机音质绝佳。房间干净整洁，前台服务热情，是一家各个细节都做得很棒的店。",
+  "小度管家控制全屋超酷！电脑配置很好，楼下吃饭也十分方便，周末拉上舍友继续来战。",
+  "前台服务温馨周到。外设高端手感绝好，小冰箱有饮料提供，打完游戏喝一罐太爽了。",
+  "房间非常干净整洁。电脑配置顶尖，加上楼下吃饭十分方便，这体验简直让人流连忘返。",
+  "小度管家很懂我。外设高端，打起游戏来得心应手。前台服务热情，小冰箱也有饮料，完美。",
+  "电脑配置很好，网速稳定。楼下吃饭十分方便，房间卫生干净整洁，是电竞玩家的理想之地。",
+  "前台服务温馨，态度极好。外设高端专业，小度管家智能化控制极大地提升了入住体验。",
+  "房间有小冰箱拿饮料很方便。电脑配置好，楼下交通吃饭也便利，这体验绝对物超所值。",
+  "卫生死角都打扫得干净整洁。外设高端，小度管家贴心，这家店的服务和硬件都值得五星。",
+  "楼下吃饭十分方便。前台服务热情，电脑配置很好，小冰箱冷饮充足，一切都恰到好处。",
+  "电脑配置强悍不掉帧。外设高端好用，房间干净整洁，小度智能管家也很聪明，满分好评！"
+];
+
+const TOTAL_PHOTOS = 11;
+let currentReviews = [];
+let currentPhotos = [];
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick(arr, min, max) {
+  const count = min + Math.floor(Math.random() * (max - min + 1));
+  return shuffle(arr).slice(0, count);
+}
+
+function renderPhotos() {
+  currentPhotos = pick([...Array(TOTAL_PHOTOS).keys()].map(i => i + 1), 3, 5).sort((a, b) => a - b);
+  const container = document.getElementById('photos');
+  container.innerHTML = currentPhotos.map(n =>
+    `<img src="${n}.jpg" alt="酒店照片${n}" loading="lazy" onerror="this.style.display='none'">`
+  ).join('');
+  document.getElementById('photoCount').textContent = `展示 ${currentPhotos.length} 张酒店实拍照片`;
+}
+
+function renderReviews() {
+  currentReviews = pick(REVIEWS, 1, 2);
+  const container = document.getElementById('reviews');
+  container.innerHTML = currentReviews.map((text, i) => `
+    <div class="review-card">
+      <div class="review-stars">⭐ 5.0 分 · 好评 #${i + 1}</div>
+      <div class="review-text">${text}</div>
+      <div class="review-actions">
+        <button class="btn btn-copy" onclick="copyOne(${i}, this)">📋 复制这条</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function refreshPhotos() {
+  renderPhotos();
+  toast('照片已刷新');
+}
+
+function refresh() {
+  renderReviews();
+  toast('评论已刷新');
+}
+
+function refreshAll() {
+  renderPhotos();
+  renderReviews();
+  toast('已全部刷新');
+}
+
+function copyOne(index, btn) {
+  const text = currentReviews[index];
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 复制这条';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 复制这条';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function copyAll() {
+  const text = currentReviews.join('\n\n');
+  const btn = document.getElementById('btnCopyAll');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ 已复制全部评论';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 一键复制全部评论';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ 已复制全部评论';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 一键复制全部评论';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._tid);
+  el._tid = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function showQr() {
+  const modal = document.getElementById('qrModal');
+  modal.classList.add('show');
+  const container = document.getElementById('qrCode');
+  if (!container.innerHTML) {
+    const url = window.location.href;
+    new QRCode(container, {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#1a1a2e',
+      colorLight: '#ffffff'
+    });
+  }
+}
+
+function closeQr() {
+  document.getElementById('qrModal').classList.remove('show');
+}
+
+// init
+renderPhotos();
+renderReviews();
+</script>
+
+</body>
+</html>
